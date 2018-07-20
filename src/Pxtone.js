@@ -50,6 +50,11 @@ export default class Pxtone {
 		return _(this).decoder(ctx, "pxtone", ...args);
 	}
 
+	async decodePxtoneStream(ctx, ...args) {
+		checkAudioContext(ctx);
+		return _(this).decoder(ctx, "stream", ...args);
+	}
+
 	toString() {
 		return `[object ${ this[Symbol.toStringTag] }]`;
 	}

@@ -7,31 +7,51 @@ const getId = (() => {
     }
 })();
 
+async function post_and_get(worker, msg, cb) {
+    return new Promise(resolve => {
+        worker.addEventListener("message", function onmessage(e) {
+            const data = e.data;
+            if (msg.sessionId !== data.sessionId) return;
+            worker.removeEventListener("message", onmessage);
+            resolve(cb(data));
+        });
+        worker.postMessage(msg);
+    });
+}
+
 export default function wrapWorker(pxtnDecoder) {
     return function decoder(type, buffer, ch, sps, bps) {
         if (pxtnDecoder instanceof Worker) {
             // worker
-            return new Promise(resolve => {
+            const sessionId = getId();
+            let msg = { sessionId, type, buffer, ch, sps, bps };
+            post_and_get(pxtnDecoder, msg, function (data) {
+                if (type !== "stream")
+                    return { buffer: data.buffer, data: data.data, stream: null };
+                else {
+                    let stream = {
+                        next: function (size) {
+                            return post_and_get(
+                                pxtnDecoder,
+                                { sessionId, type: "stream_next", size },
+                                (data) => data.streamBuffer
+                            );
+                        },
+                        release: function () {
+                            pxtnDecoder.postMessage({ sessionId, type: "stream_release" });
+                        }
+                    };
+                    return { buffer: data.buffer, data: data.data, stream };
+                }
+            });
 
-                const sessionId = getId();
-
-                pxtnDecoder.addEventListener("message", function onmessage(e) {
-                    const data = e.data;
-                    if (sessionId !== data.sessionId) return;
-                    
-                    resolve({ buffer: data.buffer, data: data.data });
-                    pxtnDecoder.removeEventListener("message", onmessage);
-                });
-
-                pxtnDecoder.postMessage({
-                    sessionId,
-                    type,
-                    buffer,
-                    ch,
-                    sps,
-                    bps
-                });
-
+            pxtnDecoder.postMessage({
+                sessionId,
+                type,
+                buffer,
+                ch,
+                sps,
+                bps
             });
         } else {
             // function
