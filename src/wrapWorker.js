@@ -25,33 +25,22 @@ export default function wrapWorker(pxtnDecoder) {
             // worker
             const sessionId = getId();
             let msg = { sessionId, type, buffer, ch, sps, bps };
-            post_and_get(pxtnDecoder, msg, function (data) {
-                if (type !== "stream")
-                    return { buffer: data.buffer, data: data.data, stream: null };
-                else {
-                    let stream = {
+            return post_and_get(pxtnDecoder, msg, function (data) {
+                data.stream = null;
+                if (type === "stream")
+                    data.stream = {
                         next: function (size) {
                             return post_and_get(
                                 pxtnDecoder,
                                 { sessionId, type: "stream_next", size },
-                                (data) => data.streamBuffer
+                                data => data.streamBuffer
                             );
                         },
                         release: function () {
                             pxtnDecoder.postMessage({ sessionId, type: "stream_release" });
                         }
                     };
-                    return { buffer: data.buffer, data: data.data, stream };
-                }
-            });
-
-            pxtnDecoder.postMessage({
-                sessionId,
-                type,
-                buffer,
-                ch,
-                sps,
-                bps
+                return data;
             });
         } else {
             // function
