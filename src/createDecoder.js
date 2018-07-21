@@ -20,7 +20,7 @@ export default function createDecoder(pxtnDecoder) {
         let retData = null;
 
         // pxtone, noise
-        const { buffer: pcmBuffer, stream, evels, data } = await decoder(type, buffer, ch, sps, bps);
+        const { buffer: pcmBuffer, stream, master, evels, data } = await decoder(type, buffer, ch, sps, bps);
 
         // remove "byteLength" of data
         if(data) {
@@ -46,7 +46,7 @@ export default function createDecoder(pxtnDecoder) {
         else
             audioBuffer = await decodeAudio(ctx, pcmBuffer, ch, sps, bps);
 
-        return { buffer: audioBuffer, stream: audioStream, evels, data: retData };
+        return { buffer: audioBuffer, stream: audioStream, master, evels, data: retData };
     };
 
 }
