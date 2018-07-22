@@ -20,33 +20,26 @@ export default function createDecoder(pxtnDecoder) {
         let retData = null;
 
         // pxtone, noise
-        const { buffer: pcmBuffer, stream, master, evels, data } = await decoder(type, buffer, ch, sps, bps);
+        let decoded = await decoder(type, buffer, ch, sps, bps);
 
-        // remove "byteLength" of data
-        if(data) {
-            retData = {
-                loopStart:  data.loopStart,
-                loopEnd:    data.loopEnd,
-                title:      data.title,
-                comment:    data.comment
-            };
-        }
+        // byteLength shouldn't be exposed to user
+        if (decoded.data) delete decoded.data.byteLength;
 
         let audioBuffer = null;
         let audioStream = null;
-        if (stream)
-            audioStream = {
-                next: async function (duration) {
-                    let size = duration * ch * (bps / 8) * sps;
-                    let buffer = await stream.next(size);
-                    return decodeAudio(ctx, buffer, ch, sps, bps);
-                },
-                release: stream.release
+        if (decoded.stream) {
+            // (byteLength -> pcm) stream into (duration -> audio) stream
+            let byteStreamNext = decoded.stream.next;
+            decoded.stream.next = async function (duration) {
+                let size = duration * ch * (bps / 8) * sps;
+                let buffer = await byteStreamNext(size);
+                return decodeAudio(ctx, buffer, ch, sps, bps);
             };
+        }
         else
-            audioBuffer = await decodeAudio(ctx, pcmBuffer, ch, sps, bps);
+            decoded.buffer = await decodeAudio(ctx, decoded.buffer, ch, sps, bps);
 
-        return { buffer: audioBuffer, stream: audioStream, master, evels, data: retData };
+        return decoded;
     };
 
 }
