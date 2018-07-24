@@ -38,6 +38,9 @@ export default function wrapWorker(pxtnDecoder) {
                         },
                         release: function () {
                             pxtnDecoder.postMessage({ sessionId, type: "stream_release" });
+                        },
+                        reset: function (position) {
+                            pxtnDecoder.postMessage({ sessionId, type: "stream_reset", position, });
                         }
                     };
                 return data;
