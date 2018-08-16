@@ -35,6 +35,13 @@ export default function createDecoder(pxtnDecoder) {
                 let buffer = await byteStreamNext(size);
                 return decodeAudio(ctx, buffer, ch, sps, bps);
             };
+
+            // seek by second instead of by sample num
+            let byteReset = decoded.stream.reset;
+            decoded.stream.reset = function (seek_seconds) {
+                let position = seek_seconds * sps;
+                return byteReset(position);
+            }
         }
         else
             decoded.buffer = await decodeAudio(ctx, decoded.buffer, ch, sps, bps);
