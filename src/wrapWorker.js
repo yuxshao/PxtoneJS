@@ -47,8 +47,11 @@ export default function wrapWorker(pxtnDecoder) {
                               "stream_set_mute", unitNum, isMute});
                         },
                         getMute: function (unitNum) {
-                            pxtnDecoder.postMessage({ sessionId, type:
-                              "stream_get_mute", unitNum});
+                            return post_and_get(
+                                pxtnDecoder,
+                                { sessionId, type: "stream_get_mute", unitNum},
+                                data => data.isMute
+                            );
                         }
                     };
                 return data;
