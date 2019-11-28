@@ -9,9 +9,11 @@ const getId = (() => {
 
 async function post_and_get(worker, msg, cb) {
     return new Promise(resolve => {
+        msg.requestId = getId();
         worker.addEventListener("message", function onmessage(e) {
             const data = e.data;
             if (msg.sessionId !== data.sessionId) return;
+            if (msg.requestId !== data.requestId) return;
             worker.removeEventListener("message", onmessage);
             resolve(cb(data));
         });
