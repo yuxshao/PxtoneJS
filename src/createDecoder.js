@@ -31,7 +31,8 @@ export default function createDecoder(pxtnDecoder) {
             // (byteLength -> pcm) stream into (duration -> audio) stream
             let byteStreamNext = decoded.stream.next;
             decoded.stream.next = async function (duration) {
-                let size = duration * ch * (bps / 8) * sps;
+                let bytesPerSample = bps / 8; // bits per sample / 8
+                let size = duration * ch * bytesPerSample * sps;
                 let buffer = await byteStreamNext(size);
                 return decodeAudio(ctx, buffer, ch, sps, bps);
             };

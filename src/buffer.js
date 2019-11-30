@@ -79,7 +79,12 @@ export function decodeAudio(ctx, pcmBuffer, ch, sps, bps) {
 
     return new Promise((resolve, reject) => ctx.decodeAudioData(waveBuffer, resolve, reject)).catch(() => {
         // for Firefox in OS X https://bugzilla.mozilla.org/show_bug.cgi?id=864780
-        const audioBuffer = ctx.createBuffer(ch, pcmLength / ch, sps);
+        const bytesPerSample = bps / 8; // bits per sample / 8
+        const numSamples = pcmLength / ch / bytesPerSample;
+
+        // despite documentation saying the second argument is numSamples * ch,
+        // the actual value is just numSamples
+        const audioBuffer = ctx.createBuffer(ch, numSamples, sps);
 
         const outputChannel = [];
         for (let i = 0; i < ch; ++i) {
