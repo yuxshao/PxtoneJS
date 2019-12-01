@@ -28,21 +28,30 @@ export default function createDecoder(pxtnDecoder) {
         let audioBuffer = null;
         let audioStream = null;
         if (decoded.stream) {
-            // (byteLength -> pcm) stream into (duration -> audio) stream
+            // (byteLength -> pcm) stream into (numSamples -> audio) stream
+
+            // At some point this was (seconds -> audio), but that isn't really
+            // a promise we can keep because (seconds * sps) might not be an
+            // integer, so the returned audio buffer would not be the right
+            // length.
             let byteStreamNext = decoded.stream.next;
-            decoded.stream.next = async function (duration) {
+            decoded.stream.next = async function (numSamples) {
+                if (!Number.isInteger(numSamples))
+                    throw "Warning: trying to get non-integer number of samples " + numSamples;
                 let bytesPerSample = bps / 8; // bits per sample / 8
-                let size = duration * ch * bytesPerSample * sps;
+                let size = numSamples * ch * bytesPerSample;
                 let buffer = await byteStreamNext(size);
                 return decodeAudio(ctx, buffer, ch, sps, bps);
             };
 
-            // seek by second instead of by sample num
-            let byteReset = decoded.stream.reset;
-            decoded.stream.reset = function (seek_seconds) {
-                let position = seek_seconds * sps;
-                return byteReset(position);
+            let auxReset = decoded.stream.reset;
+            decoded.stream.reset = function (pos) {
+                if (!Number.isInteger(pos))
+                    throw "Bug: trying to seek to non-integer sample position " + pos;
+                return auxReset(pos);
             }
+
+            decoded.stream.getSps = function () { return sps; }
         }
         else
             decoded.buffer = await decodeAudio(ctx, decoded.buffer, ch, sps, bps);
